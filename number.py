@@ -3,123 +3,80 @@ import requests
 
 app = Flask(__name__)
 
-
-# validate
+# Validate input
 def validate(number):
-    num_str = request.args.get('number')
-    # if number is None: 
-    #     number = 0
-    
-    try:
-        number = int(num_str)
+    if not number:
+        raise ValueError("Missing 'number' parameter")
 
-        if number < 0:
-            return jsonify({number}), 400
-   
+    try:
+        number = int(float(number))  # Convert to integer (even if it's a float)
     except ValueError:
-        number = 0
+        raise ValueError("Invalid input, must be a valid number")
 
     return number
 
-
-# check if prime
+# Check if prime
 def is_prime(number):
     if number < 2:
         return False
-    for x in range(2, (number//2) + 1):
+    for x in range(2, (number // 2) + 1):
         if number % x == 0:
             return False
-
     return True
 
-# check if armstrong
+# Check if Armstrong number
 def is_armstrong(number):
-    order = len(str(number))
-    sum = 0
-    temp = number
+    order = len(str(abs(number)))  # Handle negative numbers
+    sum_total = sum(int(digit) ** order for digit in str(abs(number)))
+    return abs(number) == sum_total
 
-    while temp > 0:
-        digit = temp % 10
-        sum += digit ** order
-        temp //= 10
-
-    return number == sum
-    
-# check if perfect
+# Check if perfect number
 def is_perfect(number):
-    if number == 0:
+    if number <= 0:
         return False
+    return sum(x for x in range(1, number) if number % x == 0) == number
 
-    sum = 0
-    for x in range(1, number):
-        if (number % x == 0):
-            sum = sum + x
-    
-    if sum != number:
-        return False
-
-    return True
-
-# calc sum
+# Calculate sum of digits
 def calc_sum(number):
-    sum = 0
-    temp = number
+    return sum(int(digit) for digit in str(abs(number)))
 
-    while temp > 0:
-        digit = temp % 10
-        sum += digit
-        temp //= 10
-
-    return int(sum)
-
-# get fun fact
+# Get fun fact
 def get_fun_fact(number):
     url = f"http://numbersapi.com/{number}/math"
     response = requests.get(url)
 
     if response.status_code != 200:
-        return(f"Failed to retrieve data. Status code: 200")
+        return f"Failed to retrieve data. Status code: {response.status_code}"
     
-    return str(response.text)
+    return response.text
 
-#  get properties
+# Get properties
 def get_properties(number):
     properties = []
-
-    if number < 0:
-        return ["armstrong"] if is_armstrong(number) else []
-
     if is_armstrong(number):
         properties.append("armstrong")
-    
-    if number % 2 == 0:
-        properties.append("even")
-    else:
-        properties.append("odd")
-
+    properties.append("even" if number % 2 == 0 else "odd")
     return properties
-
 
 @app.route('/api/classify-number', methods=['GET'])
 def classify_number():
-    number = request.args.get('number')
+    number_param = request.args.get('number')
 
-    number  = validate(number)
-    if isinstance(number, str):
-        return jsonify({"error": number}), 400
+    try:
+        number = validate(number_param)
+    except ValueError as e:
+        return jsonify({"error": True, "message": str(e)}), 400
 
-    # response
     response_data = {
         "number": number,
-        "is_prime": bool(is_prime(number)),
-        "is_perfect": bool(is_perfect(number)),
+        "is_prime": is_prime(number),
+        "is_perfect": is_perfect(number),
         "properties": get_properties(number),
-        "digit_sum": int(calc_sum(number)),
-        "fun_fact": str(get_fun_fact(number))
+        "digit_sum": calc_sum(number),
+        "fun_fact": get_fun_fact(number)
     }
 
     return jsonify(response_data), 200
-
 
 if __name__ == '__main__':
     # Run the app on a publicly accessible address
