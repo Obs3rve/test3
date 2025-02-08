@@ -5,15 +5,21 @@ app = Flask(__name__)
 
 # Validate input
 def validate(number):
+    print(f"📌 Raw input: {number}")  # Debugging log
+
     if not number:
         raise ValueError("Missing 'number' parameter")
 
     try:
-        number = int(float(number))  # Convert to integer (even if it's a float)
+        number = float(number)  # Convert to float first
+        number = int(number)  # Convert to integer after
+        print(f"✔ Converted number: {number}")  # Debugging log
     except ValueError:
+        print("❌ Error: Invalid input")
         raise ValueError("Invalid input, must be a valid number")
 
     return number
+
 
 # Check if prime
 def is_prime(number):
